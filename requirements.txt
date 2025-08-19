@@ -1,0 +1,10 @@
+deepagents==0.0.3
+langchain-openai==0.3.30
+langchain-ollama==0.3.6
+yfinance==0.2.65
+langchain-core==0.3.74
+gradio==5.42.0
+yfinance==0.2.65
+langchain-core==0.3.74
+gradio==5.42.0
+langchain_community==0.3.27
