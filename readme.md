@@ -98,9 +98,10 @@ This project demonstrates how to build advanced AI research capabilities using L
 
 ## 📦 Dependencies
 
-Create a `requirements.txt` file with:
+The `requirements.txt` file includes:
 
 ```txt
+# Core dependencies
 deepagents
 langchain-ollama
 langchain-core
@@ -108,6 +109,52 @@ yfinance
 gradio
 pandas
 numpy
+
+# Development dependencies
+pytest>=7.0.0
+pytest-cov>=4.0.0
+```
+
+## 🆕 What's New in v1.0.0
+
+### Enhanced Features
+- ✅ **News Sentiment Analysis** - Get recent news with automated sentiment scoring
+- ✅ **Analyst Recommendations** - Access Wall Street analyst ratings and price targets
+- ✅ **Export Functionality** - Save reports as JSON or Text files
+- ✅ **Rate Limiting** - Prevents abuse with 10-second cooldown per user
+- ✅ **Input Validation** - Comprehensive validation for all inputs
+- ✅ **Intelligent Caching** - 1-hour cache for prices, 24-hour for financials
+- ✅ **Retry Logic** - Exponential backoff for failed API calls (up to 3 attempts)
+- ✅ **Enhanced UI** - Improved interface with status indicators
+
+### Modular Architecture
+The project has been refactored into a clean, maintainable structure:
+
+```
+deepagents/
+├── src/
+│   ├── agents/          # Specialized sub-agents
+│   ├── tools/           # Financial data tools
+│   ├── ui/              # Gradio interface
+│   ├── utils/           # Utilities (config, cache, validation)
+│   └── main.py          # Main entry point
+├── tests/               # Unit tests
+├── exports/             # Exported reports
+└── research_agent.py    # Original (backward compatible)
+```
+
+### Running the New Version
+
+```bash
+# Method 1: Run as module (recommended)
+python -m src.main
+
+# Method 2: Install and use command
+pip install -e .
+deepagents-research
+
+# Method 3: Backward compatible
+python research_agent.py
 ```
 
 ## 🎯 Usage
@@ -136,46 +183,162 @@ Include:
 
 ## 🔧 Configuration
 
+### Environment Variables
+
+Configure the application via environment variables or `.env` file:
+
+```bash
+# LLM Configuration
+OLLAMA_MODEL=gpt-oss           # Ollama model to use
+TEMPERATURE=0.0                # LLM temperature (0-1)
+
+# Server Configuration
+SERVER_HOST=127.0.0.1          # Server host (use 0.0.0.0 for external access)
+SERVER_PORT=7860               # Server port
+
+# Cache Configuration
+CACHE_TTL=3600                 # Cache time-to-live in seconds (1 hour)
+CACHE_MAX_SIZE=100             # Maximum cache entries
+
+# Rate Limiting
+RATE_LIMIT_SECONDS=10          # Seconds between requests per user
+
+# API Configuration
+MAX_RETRIES=3                  # Max retry attempts for failed API calls
+RETRY_MIN_WAIT=2               # Minimum wait between retries (seconds)
+RETRY_MAX_WAIT=10              # Maximum wait between retries (seconds)
+
+# Other
+LOG_LEVEL=INFO                 # Logging level (DEBUG, INFO, WARNING, ERROR)
+EXPORT_DIR=exports             # Directory for exported reports
+```
+
 ### Model Configuration
 
 ```python
-# Customize the LLM model
-ollama_model = ChatOllama(
-    model="your-preferred-model",  # e.g., "llama2", "codellama"
-    temperature=0,                 # Adjust for creativity vs consistency
-)
+# Customize in src/utils/config.py or via environment variables
+OLLAMA_MODEL="gpt-oss"         # Or "llama2", "codellama", etc.
+TEMPERATURE=0.0                # For deterministic output
 ```
+
+## 🛠️ Available Tools
+
+The system includes 5 specialized financial tools:
+
+### 1. get_stock_price
+Get current stock price and basic company information.
+- Current price, market cap, P/E ratio
+- 52-week high/low
+- Volume and average volume
+- Dividend yield
+
+### 2. get_financial_statements
+Retrieve financial statements and calculated ratios.
+- Revenue, net income, operating income
+- Total assets, debt, equity, cash
+- Calculated ratios: profit margin, ROA, ROE, debt-to-equity
+- Operating and free cash flow
+
+### 3. get_technical_indicators
+Calculate technical indicators for chart analysis.
+- Moving averages (SMA 20/50/200)
+- RSI (Relative Strength Index)
+- MACD (Moving Average Convergence Divergence)
+- Volume analysis
+- Trend signals and trading recommendations
+
+### 4. get_news_sentiment (NEW)
+Analyze recent news articles with sentiment scoring.
+- Recent news headlines and publishers
+- Individual sentiment per article (positive/negative/neutral)
+- Overall sentiment breakdown
+- Publication dates and links
+
+### 5. get_analyst_recommendations (NEW)
+Access Wall Street analyst ratings and price targets.
+- Analyst consensus rating (Strong Buy to Sell)
+- Price targets (mean, high, low)
+- Number of analyst opinions
+- Recent recommendation changes
+- Upside/downside potential calculation
 
 ### Adding Custom Tools
 
-```python
-@tool
-def custom_analysis_tool(symbol: str) -> str:
-    """Your custom analysis logic here."""
-    # Implementation
-    return results
+Create new tools in `src/tools/`:
 
-# Add to tools list
-tools = [
-    get_stock_price,
-    get_financial_statements,
-    get_technical_indicators,
-    custom_analysis_tool  # Your custom tool
-]
+```python
+# src/tools/my_custom_tool.py
+from langchain_core.tools import tool
+from ..utils.validation import validate_stock_symbol
+
+@tool
+def my_custom_tool(symbol: str) -> str:
+    """Your custom analysis logic here."""
+    # Validate input
+    symbol = normalize_stock_symbol(symbol)
+    is_valid, error = validate_stock_symbol(symbol)
+    if not is_valid:
+        return json.dumps({"error": error})
+
+    # Your implementation
+    result = {"symbol": symbol, "data": "..."}
+    return json.dumps(result, indent=2)
 ```
+
+Then add to `src/tools/__init__.py` and `src/main.py`
 
 ### Customizing Sub-Agents
 
+Create new sub-agents in `src/agents/`:
+
 ```python
-# Add new specialized sub-agent
+# src/agents/esg.py
 esg_analyst = {
     "name": "esg-analyst",
     "description": "Evaluates Environmental, Social, and Governance factors",
-    "prompt": """You are an ESG specialist..."""
+    "prompt": """You are an ESG specialist with expertise in evaluating
+    corporate sustainability practices, social responsibility, and governance
+    quality. Focus on material ESG factors that impact long-term value..."""
 }
-
-subagents = [fundamental_analyst, technical_analyst, risk_analyst, esg_analyst]
 ```
+
+Then add to `src/agents/__init__.py` and `src/main.py`
+
+## 🧪 Testing
+
+Run the comprehensive test suite:
+
+```bash
+# Install test dependencies
+pip install -r requirements.txt
+
+# Run all tests
+pytest tests/ -v
+
+# Run with coverage report
+pytest tests/ --cov=src --cov-report=html
+open htmlcov/index.html
+
+# Run specific test file
+pytest tests/test_validation.py -v
+```
+
+## 📤 Exporting Reports
+
+The new UI includes export functionality:
+
+1. Complete your research analysis
+2. Enter the stock symbol in the export section
+3. Choose format (Text or JSON)
+4. Click "Export Report"
+5. Files are saved to `exports/` directory
+
+**Export Formats:**
+- **Text**: Human-readable format with headers
+- **JSON**: Structured data for programmatic use
+
+**Filename Format:** `{SYMBOL}_{TIMESTAMP}.{ext}`
+Example: `AAPL_20251112_143052.txt`
 
 ## 📊 Example Output
 

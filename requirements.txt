@@ -1,3 +1,4 @@
+# Core dependencies
 deepagents
 langchain-ollama
 langchain-core
@@ -5,3 +6,7 @@ yfinance
 gradio
 pandas
 numpy
+
+# Development dependencies
+pytest>=7.0.0
+pytest-cov>=4.0.0
