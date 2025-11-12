@@ -1,0 +1,7 @@
+deepagents
+langchain-ollama
+langchain-core
+yfinance
+gradio
+pandas
+numpy
