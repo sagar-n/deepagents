@@ -6,6 +6,7 @@ yfinance
 gradio
 pandas
 numpy
+pytz  # v1.3.0: Market-hours detection for smart caching
 
 # Development dependencies
 pytest>=7.0.0

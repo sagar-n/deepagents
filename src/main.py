@@ -31,6 +31,7 @@ from .utils.confidence import get_confidence_scorer
 
 # NEW v1.3.0: Performance optimizations
 from .utils.llm_streaming import GradioStreamingHandler, create_streaming_model
+from .utils.async_agents import get_async_executor  # Async parallel execution framework
 
 # Configure logging
 logging.basicConfig(
@@ -528,6 +529,70 @@ def submit_feedback(research_id: int, rating: int, helpful: list, missing: list)
         return False
 
 
+async def run_parallel_research_example(symbols: list) -> dict:
+    """
+    EXAMPLE: Demonstrate async parallel execution framework.
+
+    This function shows how to use the v1.3.0 async agent framework
+    to run multiple independent research tasks in parallel.
+
+    NOTE: The main DeepAgents workflow uses internal sub-agent orchestration.
+    This async framework is for custom parallel workflows where you want to
+    run completely independent tasks simultaneously.
+
+    Args:
+        symbols: List of stock symbols to research in parallel
+
+    Returns:
+        Dictionary with results from all parallel executions
+
+    Example:
+        ```python
+        import asyncio
+        from src.main import run_parallel_research_example
+
+        # Run research on multiple stocks in parallel
+        results = asyncio.run(run_parallel_research_example(['AAPL', 'MSFT', 'GOOGL']))
+        print(f"Researched {len(results['agent_results'])} stocks in parallel")
+        print(f"Total time: {results['metadata']['total_execution_time']:.2f}s")
+        ```
+    """
+    logger.info(f"Starting parallel research for {len(symbols)} symbols")
+
+    # Get async executor
+    executor = get_async_executor()
+
+    # Define research function for each symbol
+    def research_symbol(symbol: str, data=None):
+        """Individual research function to run in parallel."""
+        query = f"Analyze {symbol} for investment potential"
+        return run_stock_research(query)
+
+    # Create agent configs for parallel execution
+    agent_configs = [
+        {
+            "name": f"research_{symbol}",
+            "function": research_symbol,
+            "priority": i
+        }
+        for i, symbol in enumerate(symbols)
+    ]
+
+    # Run all research tasks in parallel
+    results = await executor.run_agents_parallel(
+        agent_configs=agent_configs,
+        query="",  # Query embedded in function
+        data=None
+    )
+
+    logger.info(
+        f"Parallel research complete: {results['metadata']['successful']} succeeded, "
+        f"{results['metadata']['failed']} failed"
+    )
+
+    return results
+
+
 def main():
     """Main entry point for the application."""
     logger.info("Starting DeepAgents Stock Research Assistant v1.3.0 'Lightning Fast++'")
@@ -540,6 +605,11 @@ def main():
     get_feedback_system()
     get_tool_analytics()
     get_confidence_scorer()
+
+    # v1.3.0: Async executor available for custom parallel workflows
+    # See run_parallel_research_example() for usage demonstration
+    get_async_executor()
+
     logger.info("All systems initialized successfully")
 
     # Create the enhanced Gradio interface with streaming
